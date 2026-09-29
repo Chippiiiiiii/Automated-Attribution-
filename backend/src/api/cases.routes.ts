@@ -1,0 +1,24 @@
+import { Router } from 'express';
+import * as cases from '../controllers/case.controller.js';
+
+export const casesRouter = Router();
+casesRouter.get('/summary', cases.dashboard);
+casesRouter.post('/', cases.create);
+casesRouter.get('/', cases.list);
+casesRouter.get('/:id', cases.get);
+casesRouter.post('/:id/wallets', cases.addWallet);
+casesRouter.post('/:id/notes', cases.noteCreate);
+casesRouter.patch('/:id/status', cases.status);
+casesRouter.post('/:id/analyze', cases.analyze);
+casesRouter.get('/:id/attributions', cases.attributions);
+casesRouter.post('/:id/risk', cases.riskScore);
+casesRouter.get('/:id/risk', cases.riskScores);
+casesRouter.get('/:id/audit', cases.audit);
+casesRouter.post('/:id/reports', cases.reportCreate);
+casesRouter.get('/:id/reports', cases.reportList);
+casesRouter.get('/:id/reports/:reportId', cases.reportJson);
+casesRouter.get('/:id/reports/:reportId/pdf', cases.reportPdf);
+casesRouter.get('/:id/sahyog', cases.sahyogList);
+casesRouter.post('/:id/sahyog', cases.sahyogPrepare);
+casesRouter.post('/:id/sahyog/:requestId/submit', cases.sahyogSubmit);
+casesRouter.post('/:id/sahyog/:requestId/advance', cases.sahyogAdvance);

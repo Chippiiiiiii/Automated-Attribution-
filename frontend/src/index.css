@@ -1,0 +1,37 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Public Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  /* Official light palette */
+  --color-canvas: #eef2f6;   /* page background */
+  --color-surface: #ffffff;  /* cards / panels */
+  --color-panel: #f5f8fb;    /* inset / secondary surface */
+  --color-line: #d3dce6;     /* borders / dividers */
+
+  --color-ink: #12212f;      /* primary text */
+  --color-muted: #566475;    /* secondary text */
+  --color-faint: #7d8b9a;    /* tertiary text */
+
+  --color-brand: #0b3a66;      /* government navy */
+  --color-brandhover: #0d4a82;
+  --color-brandsoft: #e8f0f8;  /* light navy tint */
+
+  /* National tricolor accents (used sparingly, as official signalling) */
+  --color-saffron: #ff9933;
+  --color-india-green: #138808;
+}
+
+html {
+  color-scheme: light;
+}
+
+body {
+  margin: 0;
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}

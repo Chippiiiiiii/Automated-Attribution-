@@ -1,0 +1,375 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ADMIN
+  INVESTIGATOR
+}
+
+enum CaseStatus {
+  OPEN
+  ANALYZING
+  REVIEW
+  CLOSED
+}
+
+enum EntityType {
+  SUSPECT_WALLET
+  UNKNOWN_WALLET
+  EXCHANGE
+  VASP
+  CUSTODIAL_WALLET
+  DEPOSIT_ADDRESS
+  HOT_WALLET
+  MIXER
+  TUMBLER
+  DEFI_PROTOCOL
+  BRIDGE
+  CROSS_CHAIN_SERVICE
+  MINER
+  OTC_SERVICE
+  UNKNOWN_SERVICE
+}
+
+enum TxStatus {
+  SUCCESS
+  FAILED
+  PENDING
+}
+
+enum AttributionClass {
+  CONFIRMED
+  STRONGLY_INFERRED
+  PROBABLE
+  POSSIBLE
+  LOW_CONFIDENCE
+  UNKNOWN
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum SahyogKind {
+  SYNC
+  DISCLOSURE
+  FREEZE
+}
+
+/// PREPARED = drafted locally, nothing left this system. Everything after is a MOCK exchange (no real SAHYOG endpoint exists here).
+enum SahyogStatus {
+  PREPARED
+  SUBMITTED
+  ACKNOWLEDGED
+  FULFILLED
+}
+
+model User {
+  id           String    @id @default(uuid()) @db.Uuid
+  email        String    @unique
+  name         String
+  passwordHash String
+  role         Role      @default(INVESTIGATOR)
+  active       Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  investigator Investigator?
+  cases        Case[]
+  notes        CaseNote[]
+  auditLogs    AuditLog[]
+
+  @@map("users")
+}
+
+model Investigator {
+  id          String @id @default(uuid()) @db.Uuid
+  userId      String @unique @db.Uuid
+  agency      String
+  badgeNumber String @unique
+  user        User   @relation(fields: [userId], references: [id])
+
+  @@map("investigators")
+}
+
+model BlockchainNetwork {
+  code         String  @id
+  name         String
+  nativeSymbol String
+  explorerUrl  String
+  enabled      Boolean @default(true)
+
+  wallets       Wallet[]
+  transactions  Transaction[]
+  edges         TransactionEdge[]
+  vaspAddresses VaspAddress[]
+  addressLabels AddressLabel[]
+
+  @@map("blockchain_networks")
+}
+
+model Case {
+  id         String     @id @default(uuid()) @db.Uuid
+  seq        Int        @unique @default(autoincrement())
+  caseNumber String?    @unique
+  title      String
+  summary    String     @default("")
+  status     CaseStatus @default(OPEN)
+  createdById String    @db.Uuid
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  createdBy  User       @relation(fields: [createdById], references: [id])
+  wallets    CaseWallet[]
+  notes      CaseNote[]
+  attributions AttributionResult[]
+  riskScores RiskScore[]
+  reports    InvestigationReport[]
+  sahyogRequests SahyogRequest[]
+  auditLogs  AuditLog[]
+
+  @@index([status])
+  @@map("cases")
+}
+
+model CaseNote {
+  id        String   @id @default(uuid()) @db.Uuid
+  caseId    String   @db.Uuid
+  authorId  String   @db.Uuid
+  body      String
+  createdAt DateTime @default(now())
+  case      Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  author    User     @relation(fields: [authorId], references: [id])
+
+  @@index([caseId])
+  @@map("case_notes")
+}
+
+model Wallet {
+  id        String   @id @default(uuid()) @db.Uuid
+  address   String
+  chain     String
+  createdAt DateTime @default(now())
+  network   BlockchainNetwork @relation(fields: [chain], references: [code])
+  cases     CaseWallet[]
+  attributions AttributionResult[]
+  riskScores RiskScore[]
+
+  @@unique([chain, address])
+  @@map("wallets")
+}
+
+model CaseWallet {
+  caseId   String   @db.Uuid
+  walletId String   @db.Uuid
+  role     EntityType @default(SUSPECT_WALLET)
+  note     String   @default("")
+  addedAt  DateTime @default(now())
+  case     Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  wallet   Wallet   @relation(fields: [walletId], references: [id])
+
+  @@id([caseId, walletId])
+  @@map("case_wallets")
+}
+
+// One normalised transfer. A chain tx with several transfers uses transferIndex.
+model Transaction {
+  id            String   @id @default(uuid()) @db.Uuid
+  chain         String
+  txHash        String
+  transferIndex Int      @default(0)
+  fromAddress   String
+  toAddress     String
+  amount        Decimal  @db.Decimal(38, 18)
+  token         String
+  timestamp     DateTime
+  blockNumber   BigInt
+  status        TxStatus @default(SUCCESS)
+  chainDetails  Json?
+  network       BlockchainNetwork @relation(fields: [chain], references: [code])
+
+  @@unique([chain, txHash, transferIndex])
+  @@index([chain, fromAddress, timestamp])
+  @@index([chain, toAddress, timestamp])
+  @@map("transactions")
+}
+
+// Aggregated directed flow between two addresses; derived by the graph engine.
+model TransactionEdge {
+  id          String   @id @default(uuid()) @db.Uuid
+  chain       String
+  fromAddress String
+  toAddress   String
+  token       String
+  totalAmount Decimal  @db.Decimal(38, 18)
+  txCount     Int
+  firstSeen   DateTime
+  lastSeen    DateTime
+  network     BlockchainNetwork @relation(fields: [chain], references: [code])
+
+  @@unique([chain, fromAddress, toAddress, token])
+  @@index([chain, fromAddress])
+  @@index([chain, toAddress])
+  @@map("transaction_edges")
+}
+
+model Entity {
+  id        String     @id @default(uuid()) @db.Uuid
+  name      String     @unique
+  type      EntityType
+  isDemo    Boolean    @default(true)
+  source    String
+  notes     String     @default("")
+  vasp      Vasp?
+  labels    AddressLabel[]
+
+  @@map("entities")
+}
+
+model Vasp {
+  id           String   @id @default(uuid()) @db.Uuid
+  entityId     String   @unique @db.Uuid
+  aliases      String[]
+  jurisdiction String   @default("")
+  entity       Entity   @relation(fields: [entityId], references: [id])
+  addresses    VaspAddress[]
+  attributions AttributionResult[]
+
+  @@map("vasps")
+}
+
+model VaspAddress {
+  id           String     @id @default(uuid()) @db.Uuid
+  vaspId       String     @db.Uuid
+  chain        String
+  address      String
+  addressType  EntityType
+  confidence   Int
+  source       String
+  lastVerified DateTime
+  notes        String     @default("")
+  vasp         Vasp       @relation(fields: [vaspId], references: [id])
+  network      BlockchainNetwork @relation(fields: [chain], references: [code])
+
+  @@unique([chain, address])
+  @@map("vasp_addresses")
+}
+
+// Labels for non-VASP services (mixers, bridges, DeFi, ...).
+model AddressLabel {
+  id           String     @id @default(uuid()) @db.Uuid
+  chain        String
+  address      String
+  entityId     String     @db.Uuid
+  addressType  EntityType
+  label        String
+  confidence   Int
+  source       String
+  lastVerified DateTime
+  entity       Entity     @relation(fields: [entityId], references: [id])
+  network      BlockchainNetwork @relation(fields: [chain], references: [code])
+
+  @@unique([chain, address])
+  @@map("address_labels")
+}
+
+model AttributionResult {
+  id            String           @id @default(uuid()) @db.Uuid
+  caseId        String           @db.Uuid
+  walletId      String           @db.Uuid
+  nearestVaspId String?          @db.Uuid
+  confidence    Int
+  classification AttributionClass
+  distance      Int?
+  evidence      Json
+  transactionPath Json
+  intermediaryAddresses String[]
+  parameters    Json
+  createdAt     DateTime         @default(now())
+  case          Case             @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  wallet        Wallet           @relation(fields: [walletId], references: [id])
+  nearestVasp   Vasp?            @relation(fields: [nearestVaspId], references: [id])
+
+  @@index([caseId])
+  @@map("attribution_results")
+}
+
+model RiskScore {
+  id         String    @id @default(uuid()) @db.Uuid
+  caseId     String    @db.Uuid
+  walletId   String    @db.Uuid
+  score      Int
+  level      RiskLevel
+  indicators Json
+  createdAt  DateTime  @default(now())
+  case       Case      @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  wallet     Wallet    @relation(fields: [walletId], references: [id])
+
+  @@index([caseId])
+  @@map("risk_scores")
+}
+
+model InvestigationReport {
+  id            String   @id @default(uuid()) @db.Uuid
+  caseId        String   @db.Uuid
+  generatedById String   @db.Uuid
+  content       Json
+  createdAt     DateTime @default(now())
+  case          Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@index([caseId])
+  @@map("investigation_reports")
+}
+
+// Append-only: a database trigger rejects UPDATE/DELETE (see migrations).
+model AuditLog {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String?  @db.Uuid
+  caseId    String?  @db.Uuid
+  action    String
+  target    String?
+  metadata  Json     @default("{}")
+  createdAt DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id])
+  case      Case?    @relation(fields: [caseId], references: [id])
+
+  @@index([caseId, createdAt])
+  @@map("audit_logs")
+}
+
+// Admin-editable runtime configuration (attribution weights/thresholds, risk rules).
+model AppConfig {
+  key         String   @id
+  value       Json
+  updatedAt   DateTime @updatedAt
+  updatedById String?  @db.Uuid
+
+  @@map("app_config")
+}
+
+model SahyogRequest {
+  id            String       @id @default(uuid()) @db.Uuid
+  caseId        String       @db.Uuid
+  kind          SahyogKind
+  status        SahyogStatus @default(PREPARED)
+  payload       Json
+  legalReference String?
+  mockReference String?
+  history       Json         @default("[]")
+  preparedById  String       @db.Uuid
+  submittedById String?      @db.Uuid
+  submittedAt   DateTime?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  case          Case         @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@index([caseId])
+  @@map("sahyog_requests")
+}
