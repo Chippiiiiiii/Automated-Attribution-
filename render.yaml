@@ -1,0 +1,36 @@
+# Render Blueprint — provisions Postgres + the Express/Prisma backend.
+# Frontend is deployed separately on Vercel (see frontend/vercel.json).
+databases:
+  - name: sih2-db
+    plan: free
+    databaseName: sih2
+    user: sih
+
+services:
+  - type: web
+    name: sih2-backend
+    runtime: node
+    plan: free
+    rootDir: backend
+    buildCommand: npm ci --include=dev && npx prisma generate && npm run build
+    # Seed is idempotent, so running it on every start is safe (free instances cold-start).
+    startCommand: npx prisma migrate deploy && npx tsx prisma/seed.ts && node dist/src/index.js
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: BLOCKCHAIN_PROVIDER
+        value: DEMO
+      - key: SAHYOG_MODE
+        value: MOCK
+      - key: JWT_SECRET
+        generateValue: true
+      - key: DEMO_PASSWORD
+        value: demo-password-change-me
+      - key: DATABASE_URL
+        fromDatabase:
+          name: sih2-db
+          property: connectionString
+      # Set to your Vercel URL after the frontend is deployed, then redeploy.
+      - key: CORS_ORIGIN
+        sync: false
