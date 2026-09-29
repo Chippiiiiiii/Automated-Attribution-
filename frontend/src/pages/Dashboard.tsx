@@ -43,7 +43,7 @@ export default function Dashboard() {
         </Card>
         <Card title="Latest attributions">
           {s.latestAttributions.length === 0 ? (
-            <p className="text-sm text-muted">No analyses yet. Open a case and run an analysis.</p>
+            <p className="text-sm text-muted">No analyses yet. <Link className="font-semibold text-brand underline underline-offset-2" to="/cases">Open a case</Link> and run an analysis.</p>
           ) : (
             <ul className="space-y-2 text-sm">
               {s.latestAttributions.map((a) => (

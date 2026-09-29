@@ -39,12 +39,14 @@ export default function Cases() {
       <Card title="Cases">
         {!rows ? <p className="text-sm text-muted">Loading…</p> : (
           <table className="w-full text-left text-sm">
-            <thead className="text-xs text-muted"><tr><th className="py-1">Case</th><th>Title</th><th>Status</th><th>Wallets</th><th>Created</th></tr></thead>
+            <thead className="text-xs text-muted"><tr><th className="py-1">Case</th><th>Title</th><th>Status</th><th>Wallets</th><th>Created</th><th /></tr></thead>
             <tbody>
               {rows.map((c) => (
-                <tr key={c.id} className="border-t border-line">
-                  <td className="py-2"><Link className="text-brand hover:underline" to={`/cases/${c.id}`}>{c.caseNumber}</Link></td>
-                  <td>{c.title}</td><td><StatusBadge value={c.status} /></td><td>{c._count?.wallets ?? 0}</td><td className="text-muted">{fmtDate(c.createdAt)}</td>
+                <tr key={c.id} className="cursor-pointer border-t border-line hover:bg-panel" onClick={() => navigate(`/cases/${c.id}`)}>
+                  <td className="py-2"><Link className="font-mono font-semibold text-brand underline decoration-brand/40 underline-offset-2 hover:decoration-brand" to={`/cases/${c.id}`}>{c.caseNumber}</Link></td>
+                  <td><Link className="font-semibold text-brand hover:underline" to={`/cases/${c.id}`}>{c.title}</Link></td>
+                  <td><StatusBadge value={c.status} /></td><td>{c._count?.wallets ?? 0}</td><td className="text-muted">{fmtDate(c.createdAt)}</td>
+                  <td className="py-2 text-right"><Link className={`${btn} inline-block whitespace-nowrap`} to={`/cases/${c.id}`}>Open &amp; analyse →</Link></td>
                 </tr>
               ))}
             </tbody>
