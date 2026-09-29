@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { NavLink, Outlet } from 'react-router-dom';
 import { api } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
 import { DISCLAIMER } from './ui';
@@ -23,8 +23,7 @@ function TricolorRule() {
 }
 
 export function Layout() {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
+  const { user } = useAuth();
   const [health, setHealth] = useState<Health | null>(null);
   useEffect(() => {
     api.get<Health>('/health').then((r) => setHealth(r.data)).catch(() => setHealth(null));
@@ -55,7 +54,6 @@ export function Layout() {
           </nav>
           <div className="ml-auto flex items-center gap-3 text-sm">
             <span className="text-slate-200">{user?.name} · <span className="uppercase tracking-wide text-slate-300">{user?.role.toLowerCase()}</span></span>
-            <button className="rounded border border-white/30 px-2.5 py-1 text-sm font-medium hover:bg-white/10" onClick={() => { logout(); navigate('/login'); }}>Sign out</button>
           </div>
         </div>
       </header>

@@ -5,13 +5,22 @@ import Admin from './pages/Admin';
 import CaseDetail from './pages/CaseDetail';
 import Cases from './pages/Cases';
 import Dashboard from './pages/Dashboard';
-import Login from './pages/Login';
 import Vasps from './pages/Vasps';
 
-function Protected({ admin = false, children }: { admin?: boolean; children: React.ReactNode }) {
-  const { user, loading } = useAuth();
+// No login page: the session is established automatically (see AuthContext). This
+// gate only shows the boot/retry state while that silent sign-in is in flight.
+function Gate({ admin = false, children }: { admin?: boolean; children: React.ReactNode }) {
+  const { user, loading, error } = useAuth();
   if (loading) return <p className="p-8 text-sm text-muted">Loading…</p>;
-  if (!user) return <Navigate to="/login" replace />;
+  if (!user)
+    return (
+      <div className="p-8 text-sm text-muted">
+        <p>{error ?? 'Session unavailable.'}</p>
+        <button className="mt-3 rounded bg-brand px-3 py-1.5 text-sm font-medium text-white hover:bg-brandhover" onClick={() => window.location.reload()}>
+          Retry
+        </button>
+      </div>
+    );
   if (admin && user.role !== 'ADMIN') return <Navigate to="/" replace />;
   return <>{children}</>;
 }
@@ -21,13 +30,12 @@ export default function App() {
     <AuthProvider>
       <BrowserRouter>
         <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route element={<Protected><Layout /></Protected>}>
+          <Route element={<Gate><Layout /></Gate>}>
             <Route index element={<Dashboard />} />
             <Route path="cases" element={<Cases />} />
             <Route path="cases/:id" element={<CaseDetail />} />
             <Route path="vasps" element={<Vasps />} />
-            <Route path="admin" element={<Protected admin><Admin /></Protected>} />
+            <Route path="admin" element={<Gate admin><Admin /></Gate>} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

@@ -16,9 +16,12 @@ api.interceptors.request.use((cfg) => {
   return cfg;
 });
 api.interceptors.response.use(undefined, (err) => {
-  if (err.response?.status === 401 && !err.config?.url?.includes('/auth/login')) {
+  // No login page: on an expired/invalid token, drop it and reload so the app's
+  // silent auto-login re-establishes a session. Auth calls handle their own errors.
+  const url: string = err.config?.url ?? '';
+  if (err.response?.status === 401 && !url.includes('/auth/login') && !url.includes('/auth/me')) {
     tokenStore.clear();
-    window.location.assign('/login');
+    window.location.reload();
   }
   return Promise.reject(err);
 });
