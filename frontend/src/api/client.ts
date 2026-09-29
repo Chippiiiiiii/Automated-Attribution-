@@ -8,8 +8,13 @@ export const tokenStore = {
 };
 
 // In dev the Vite proxy serves `/api`. In production set VITE_API_URL to the
-// backend's public URL (e.g. https://sih2-backend.onrender.com/api).
-export const api = axios.create({ baseURL: import.meta.env.VITE_API_URL ?? '/api' });
+// backend's public URL; the `/api` suffix is appended if missing, so both
+// https://sih2-backend.onrender.com and https://sih2-backend.onrender.com/api work.
+function apiBase(raw: string | undefined): string {
+  const base = (raw ?? '').trim().replace(/\/+$/, '');
+  return base.endsWith('/api') ? base : `${base}/api`;
+}
+export const api = axios.create({ baseURL: apiBase(import.meta.env.VITE_API_URL) });
 api.interceptors.request.use((cfg) => {
   const t = tokenStore.get();
   if (t) cfg.headers.Authorization = `Bearer ${t}`;
