@@ -2,7 +2,12 @@ import { useState, type FormEvent } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { errorMessage } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
-import { btn, DISCLAIMER, ErrorText, input } from '../components/ui';
+import { btn, btnGhost, DISCLAIMER, ErrorText, input } from '../components/ui';
+
+// DEMO-only credentials, seeded by the backend (see .env.example / render.yaml).
+// Exposed so evaluators can enter without being handed a password. Safe because
+// this is synthetic DEMO data and the accounts have no real-world access.
+const DEMO_PASSWORD = 'demo-password-change-me';
 
 export default function Login() {
   const { user, login } = useAuth();
@@ -13,18 +18,22 @@ export default function Login() {
   const [busy, setBusy] = useState(false);
   if (user) return <Navigate to="/" replace />;
 
-  async function submit(e: FormEvent) {
-    e.preventDefault();
+  async function signIn(e: string, p: string) {
     setBusy(true);
     setError('');
     try {
-      await login(email, password);
+      await login(e, p);
       navigate('/');
     } catch (err) {
       setError(errorMessage(err));
     } finally {
       setBusy(false);
     }
+  }
+
+  function submit(e: FormEvent) {
+    e.preventDefault();
+    void signIn(email, password);
   }
 
   return (
@@ -50,8 +59,19 @@ export default function Login() {
             </label>
             <ErrorText>{error}</ErrorText>
             <button className={`${btn} w-full`} disabled={busy}>{busy ? 'Signing in…' : 'Sign in'}</button>
-            <p className="text-xs text-faint">Demo accounts: admin@demo.local, investigator@demo.local (password in the project's .env.example).</p>
           </form>
+          <div className="space-y-2 border-t border-line px-6 pb-6 pt-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted">Evaluation access — no password needed</p>
+            <p className="text-xs text-faint">One click signs you into a DEMO account. All data is synthetic.</p>
+            <div className="grid grid-cols-2 gap-2 pt-1">
+              <button type="button" className={btnGhost} disabled={busy} onClick={() => void signIn('investigator@demo.local', DEMO_PASSWORD)}>
+                Enter as Investigator
+              </button>
+              <button type="button" className={btnGhost} disabled={busy} onClick={() => void signIn('admin@demo.local', DEMO_PASSWORD)}>
+                Enter as Admin
+              </button>
+            </div>
+          </div>
           <p className="border-t border-line bg-panel px-6 py-3 text-[11px] text-muted">{DISCLAIMER}</p>
         </div>
       </div>
