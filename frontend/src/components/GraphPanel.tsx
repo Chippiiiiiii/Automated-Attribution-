@@ -42,8 +42,8 @@ export function GraphPanel({ chain, address, path }: { chain: Chain; address: st
   }
   useEffect(() => { void load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [chain, address]);
 
-  const { nodes, edges } = useMemo(() => {
-    if (!graph) return { nodes: [] as Node[], edges: [] as Edge[] };
+  const { nodes, edges, rows } = useMemo(() => {
+    if (!graph) return { nodes: [] as Node[], edges: [] as Edge[], rows: 1 };
     const onPath = new Set<string>();
     for (const h of path) { onPath.add(`${h.chain ?? chain}:${h.from}`); onPath.add(`${h.chain ?? chain}:${h.to}`); }
     const pathEdges = new Set(path.map((h) => `${h.chain ?? chain}:${h.from}>${h.chain ?? chain}:${h.to}`));
@@ -73,7 +73,7 @@ export function GraphPanel({ chain, address, path }: { chain: Chain; address: st
         labelStyle: { fill: '#12212f', fontSize: 10 }, labelBgStyle: { fill: '#ffffff' },
       };
     });
-    return { nodes: ns, edges: es };
+    return { nodes: ns, edges: es, rows: Math.max(1, ...cols.values()) };
   }, [graph, path, chain]);
 
   return (
@@ -98,7 +98,7 @@ export function GraphPanel({ chain, address, path }: { chain: Chain; address: st
       {graph && graph.bridgeLinks.length > 0 && (
         <p className="mb-2 text-xs text-amber-300">Cross-chain bridge deposits detected: {graph.bridgeLinks.map((b) => `${b.bridge ?? b.bridgeId} (${b.sourceChain}→${b.destChain})`).join(', ')}</p>
       )}
-      <div className="h-[460px] rounded border border-line">
+      <div className="rounded border border-line" style={{ height: Math.min(460, 200 + rows * 90) }}>
         <ReactFlow key={version} nodes={nodes} edges={edges} fitView fitViewOptions={{ padding: 0.15, maxZoom: 1.2 }} colorMode="light" onNodeClick={(_, n) => setSelected(graph?.nodes.find((x) => x.key === n.id) ?? null)} onPaneClick={() => setSelected(null)}>
           <Background /><Controls showInteractive={false} />
         </ReactFlow>
