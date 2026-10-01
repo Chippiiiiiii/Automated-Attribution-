@@ -5,6 +5,7 @@ import { authenticate, currentUser, requireRole } from '../middleware/auth.js';
 import { providerStatus } from '../blockchain/registry.js';
 import { loadRiskConfig, saveRiskConfig } from '../risk/config.js';
 import { loadAttributionConfig, saveAttributionConfig } from '../attribution/config.js';
+import { resetDemoData } from '../cases/demo-reset.service.js';
 
 export const adminRouter = Router();
 adminRouter.use(authenticate, requireRole('ADMIN'));
@@ -30,4 +31,9 @@ adminRouter.get('/risk-config', async (_req, res) => {
 });
 adminRouter.put('/risk-config', async (req, res) => {
   res.json(await saveRiskConfig(req.body, currentUser(req).id));
+});
+
+// Returns the seeded demo cases and scoring config to a clean state before a demonstration.
+adminRouter.post('/demo-reset', async (req, res) => {
+  res.json(await resetDemoData(currentUser(req).id));
 });

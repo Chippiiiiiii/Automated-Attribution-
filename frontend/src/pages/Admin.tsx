@@ -70,9 +70,36 @@ function ProviderCard() {
   );
 }
 
+function DemoResetCard() {
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  async function reset() {
+    if (!window.confirm('Reset all DEMO cases? Their attributions, risk scores, reports, notes and SAHYOG drafts are removed, statuses go back to OPEN and scoring config to defaults. Audit entries are kept.')) return;
+    setBusy(true);
+    setMsg(null);
+    try {
+      const r = await api.post<{ cases: string[] }>('/admin/demo-reset');
+      setMsg({ ok: true, text: `Reset ${r.data.cases.length} demo case(s) and scoring config. Recorded in the audit log.` });
+    } catch (e) {
+      setMsg({ ok: false, text: errorMessage(e) });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Card title="Demo data" actions={<button className={btn} disabled={busy} onClick={() => void reset()}>{busy ? 'Resetting…' : 'Reset demo'}</button>}>
+      <p className="text-sm text-muted">Returns the seeded DEMO cases to a clean state before a demonstration. Cases you created yourself are not changed, and the append-only audit trail is kept.</p>
+      {msg && (msg.ok ? <p className="mt-2 text-sm text-emerald-700">{msg.text}</p> : <ErrorText>{msg.text}</ErrorText>)}
+    </Card>
+  );
+}
+
 export default function Admin() {
   return (
     <>
+      <DemoResetCard />
       <ProviderCard />
       <ConfigEditor title="Attribution scoring" path="/admin/attribution-config" hint="Factor weights, penalties and classification thresholds (must be strictly decreasing). Applies to the next analysis." />
       <ConfigEditor title="Risk scoring" path="/admin/risk-config" hint="Indicator points, detection parameters and level thresholds (medium < high < critical)." />

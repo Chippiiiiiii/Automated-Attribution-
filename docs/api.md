@@ -27,5 +27,6 @@ Base `/api`. JSON. All routes except `/health` and `/auth/login` need `Authoriza
 | GET | `/intel/vasps` , `/intel/:chain/:address` | VASP directory / address lookup |
 | GET | `/admin/config`, `/admin/providers` | ADMIN only |
 | GET / PUT | `/admin/attribution-config`, `/admin/risk-config` | ADMIN only, validated |
+| POST | `/admin/demo-reset` | ADMIN only. Seeded DEMO cases back to OPEN with only the suspect wallet; their results, notes, reports and SAHYOG drafts removed; scoring config to defaults. Audit entries kept; reset audited (`DEMO_RESET`) |
 
 Chains: `BITCOIN ETHEREUM BNB TRON SOLANA POLYGON`.

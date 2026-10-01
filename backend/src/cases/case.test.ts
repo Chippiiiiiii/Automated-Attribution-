@@ -95,3 +95,24 @@ describe('cases API', () => {
     await expect(prisma.auditLog.delete({ where: { id: row.id } })).rejects.toThrow();
   });
 });
+
+describe('demo reset', () => {
+  it('is admin-only and returns demo cases to a clean OPEN state while keeping the audit trail', async () => {
+    expect((await post('/api/admin/demo-reset', {})).status).toBe(403);
+    const demo = await prisma.case.findFirstOrThrow({ where: { title: { startsWith: 'DEMO S1:' } } });
+    await post(`/api/cases/${demo.id}/notes`, { body: 'evaluator note' });
+    await prisma.case.update({ where: { id: demo.id }, data: { status: 'REVIEW' } });
+    const auditBefore = await prisma.auditLog.count({ where: { caseId: demo.id } });
+
+    const admin = { authorization: `Bearer ${await loginToken('admin@demo.local')}` };
+    const res = await post('/api/admin/demo-reset', {}, admin);
+    expect(res.status).toBe(200);
+    expect((await res.json()).cases).toContain(demo.caseNumber);
+
+    const after = await prisma.case.findUniqueOrThrow({ where: { id: demo.id }, include: { notes: true, wallets: true } });
+    expect(after.status).toBe('OPEN');
+    expect(after.notes).toHaveLength(0);
+    expect(after.wallets).toHaveLength(1);
+    expect(await prisma.auditLog.count({ where: { caseId: demo.id } })).toBe(auditBefore + 1);
+  });
+});

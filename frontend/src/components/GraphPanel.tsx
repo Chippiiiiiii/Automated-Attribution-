@@ -25,6 +25,8 @@ export function GraphPanel({ chain, address, path }: { chain: Chain; address: st
   const [direction, setDirection] = useState<'outbound' | 'inbound'>('outbound');
   const [minAmount, setMinAmount] = useState('');
   const [graph, setGraph] = useState<GraphData | null>(null);
+  // Bumped per load so React Flow remounts and fits the view to the newly loaded nodes.
+  const [version, setVersion] = useState(0);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [selected, setSelected] = useState<GraphNodeDto | null>(null);
@@ -35,6 +37,7 @@ export function GraphPanel({ chain, address, path }: { chain: Chain; address: st
       const params: Record<string, string | number> = { maxHops, direction };
       if (minAmount.trim()) params.minAmount = minAmount.trim();
       setGraph((await api.get<GraphData>(`/graph/${chain}/${address}`, { params })).data);
+      setVersion((v) => v + 1);
     } catch (e) { setError(errorMessage(e)); } finally { setLoading(false); }
   }
   useEffect(() => { void load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [chain, address]);
@@ -96,7 +99,7 @@ export function GraphPanel({ chain, address, path }: { chain: Chain; address: st
         <p className="mb-2 text-xs text-amber-300">Cross-chain bridge deposits detected: {graph.bridgeLinks.map((b) => `${b.bridge ?? b.bridgeId} (${b.sourceChain}→${b.destChain})`).join(', ')}</p>
       )}
       <div className="h-[460px] rounded border border-line">
-        <ReactFlow nodes={nodes} edges={edges} fitView colorMode="light" onNodeClick={(_, n) => setSelected(graph?.nodes.find((x) => x.key === n.id) ?? null)} onPaneClick={() => setSelected(null)}>
+        <ReactFlow key={version} nodes={nodes} edges={edges} fitView fitViewOptions={{ padding: 0.15, maxZoom: 1.2 }} colorMode="light" onNodeClick={(_, n) => setSelected(graph?.nodes.find((x) => x.key === n.id) ?? null)} onPaneClick={() => setSelected(null)}>
           <Background /><Controls showInteractive={false} />
         </ReactFlow>
       </div>

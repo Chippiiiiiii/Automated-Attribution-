@@ -5,6 +5,7 @@ import { DEMO_SCENARIOS } from '../src/blockchain/demo/scenarios.js';
 import type { Chain } from '../src/config/networks.js';
 import { DEMO_SERVICES, DEMO_SOURCE, DEMO_VASPS, DEMO_VERIFIED_AT } from '../src/vasp/demo-intel.js';
 import { createCase } from '../src/cases/case.service.js';
+import { demoCaseTitle } from '../src/cases/demo-reset.service.js';
 
 const NETWORKS = [
   { code: 'BITCOIN', name: 'Bitcoin', nativeSymbol: 'BTC', explorerUrl: 'https://mempool.space/tx/' },
@@ -68,7 +69,7 @@ async function main() {
   await seedIntel();
 
   for (const sc of DEMO_SCENARIOS) {
-    const title = `DEMO ${sc.id}: ${sc.title}`;
+    const title = demoCaseTitle(sc);
     if (await prisma.case.findFirst({ where: { title } })) continue;
     const c = await createCase({ title, summary: `${sc.description} (synthetic demo data)`, createdById: inv.id });
     const address = normalizeAddress(sc.chain as Chain, sc.suspect);
